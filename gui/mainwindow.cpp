@@ -98,6 +98,8 @@ MainWindow::MainWindow(QWidget *parent)
     layout->addWidget(ui->tableWidget);
     layout->addWidget(ui->pushButton);
     ui->pushButton->setFixedSize(91, 24);
+    connect(ui->pushButton, &QPushButton::clicked, this, &MainWindow::onButtonClick);
+
     ui->centralwidget->setLayout(layout);
 
     QMenu *fileMenu = menuBar()->addMenu("File");
@@ -388,7 +390,19 @@ void MainWindow::getAndShowLoadedModulesForProcess(const QString &processName)
 }
 
 
+// Assuming your QTableWidget is named tableWidget
+void MainWindow::onButtonClick()
+{
+    // Check if a cell is selected in the table
+    QModelIndexList selectedIndexes = ui->tableWidget->selectionModel()->selectedIndexes();
 
+    if (!selectedIndexes.isEmpty()) {
+        QMessageBox::information(this, "Process Selected", "Cell is selected. Not implemented yet.");
+
+    } else {
+        QMessageBox::warning(this, "No Process Selected", "Please select a cell before clicking the button.");
+    }
+}
 
 
 MainWindow::~MainWindow()

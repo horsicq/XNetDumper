@@ -24,6 +24,7 @@ public:
     QString latestDbCommit;
     QString currentDbCommit;
 public slots:
+    void onButtonClick();
     void showModulesForProcess();
     void contextMenuRequested(const QPoint &pos);
     void checkForUpdates();
