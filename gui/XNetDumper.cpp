@@ -1,5 +1,5 @@
-#include "mainwindow.h"
-#include "./ui_mainwindow.h"
+#include "XNetDumper.h"
+#include "./ui_XNetDumper.h"
 #include "loadedmodulesdialog.h"
 #include "qjsonarray.h"
 #include "qjsondocument.h"
@@ -23,13 +23,18 @@
 #include "updater.h"
 #include <QVersionNumber>
 #include <QtGlobal>
+#include <tlhelp32.h>
+#include <Psapi.h>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QFileInfo>
+#include <tchar.h>
 
 
-
-
-MainWindow::MainWindow(QWidget *parent)
+XNetDumper::XNetDumper(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    , ui(new Ui::XNetDumper)  // Adjust the class name here
 {
     QApplication::setStyle(QStyleFactory::create("Fusion"));
     ui->setupUi(this);
@@ -41,28 +46,11 @@ MainWindow::MainWindow(QWidget *parent)
 #else
     QShortcut *searchShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_F), this);
 #endif
-    connect(searchShortcut, &QShortcut::activated, this, &MainWindow::onSearchShortcut);
+    connect(searchShortcut, &QShortcut::activated, this, &XNetDumper::onSearchShortcut);
 
-    QProcess process;
-#ifdef Q_OS_WIN
-    // Code specific to Windows
-    process.setProgram("C:\\Windows\\System32\\tasklist.exe");
-   process.setArguments({"/FO", "CSV", "/NH", "/FI", "USERNAME ne NT AUTHORITY\\SYSTEM", "/FI", "IMAGENAME ne System"});
-#elif defined(Q_OS_LINUX)
-    // Code specific to Linux
-    process.setProgram("/bin/ps");
-    process.setArguments({"-ef"});
-#elif defined(Q_OS_MAC)
-    // Code specific to macOS
-    process.setProgram("/bin/ps");
-    process.setArguments({"-ax"});
-#endif
-    process.start();
-    process.waitForFinished(-1); // wait until the process finishes
-    QString output = process.readAllStandardOutput();
-    QStringList processList = output.split("\n");
-    ui->tableWidget->setColumnCount(4);
-    ui->tableWidget->setHorizontalHeaderLabels(QStringList() << "Process ID" << "Process Name" << "Framework" << "Arch");
+
+    ui->tableWidget->setColumnCount(3);
+    ui->tableWidget->setHorizontalHeaderLabels(QStringList() << "Process ID" << "Process Name"  << "Arch");
     ui->tableWidget->setShowGrid(false);
     ui->tableWidget->verticalHeader()->setVisible(false);
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -70,66 +58,253 @@ MainWindow::MainWindow(QWidget *parent)
     // Align the column headers to the left
     ui->tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
     ui->tableWidget->setColumnWidth(0, 62);
-    ui->tableWidget->setColumnWidth(1, 106);
+    ui->tableWidget->setColumnWidth(1, 216);
     ui->tableWidget->setColumnWidth(2, 67);
     ui->tableWidget->setColumnWidth(3, 44);
 
+    QStringList processList = getProcesses();
     // Add the processes to the QTableWidget
-    QRegularExpression re("\"(.*?)\",\"(.*?)\",(.*),(.*),");
     QSet<QString> addedProcesses;
     for (const QString &process : processList) {
-        QRegularExpressionMatch match = re.match(process);
-        if (match.hasMatch()) {
-            QString processName = match.captured(1);
+        QStringList parts = process.split(",", Qt::SkipEmptyParts);
+        if (parts.size() >= 2) {
+            QString processName = parts[1];
             if (!addedProcesses.contains(processName)) {
                 int row = ui->tableWidget->rowCount();
                 ui->tableWidget->insertRow(row);
-                ui->tableWidget->setItem(row, 0, new QTableWidgetItem(match.captured(2))); // PID
+                ui->tableWidget->setItem(row, 0, new QTableWidgetItem(parts[0])); // PID
                 ui->tableWidget->setItem(row, 1, new QTableWidgetItem(processName)); // Process Name
-                ui->tableWidget->setItem(row, 2, new QTableWidgetItem("")); // Framework
-                ui->tableWidget->setItem(row, 3, new QTableWidgetItem("")); // Arch
+                ui->tableWidget->setItem(row, 2, new QTableWidgetItem(parts[2])); // Arch
                 addedProcesses.insert(processName);
             }
         }
     }
+
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(ui->tableWidget);
     layout->addWidget(ui->pushButton);
     ui->pushButton->setFixedSize(91, 24);
-    connect(ui->pushButton, &QPushButton::clicked, this, &MainWindow::onButtonClick);
+    connect(ui->pushButton, &QPushButton::clicked, this, &XNetDumper::onButtonClick);
 
     ui->centralwidget->setLayout(layout);
 
     QMenu *fileMenu = menuBar()->addMenu("File");
     // Create a "Open" action and add it to the "File" menu
     QAction *openAction = new QAction("Open", this);
-    connect(openAction, &QAction::triggered, this, &MainWindow::openActionTriggered);
+    connect(openAction, &QAction::triggered, this, &XNetDumper::openActionTriggered);
     fileMenu->addAction(openAction);
 
     // Create a "Save" action and add it to the "File" menu
     QAction *saveAction = new QAction("Save", this);
-    connect(saveAction, &QAction::triggered, this, &MainWindow::saveActionTriggered);
+    connect(saveAction, &QAction::triggered, this, &XNetDumper::saveActionTriggered);
     fileMenu->addAction(saveAction);
 
     // Create a new QMenu
     QMenu *assemblyMenu = menuBar()->addMenu("Assembly");
     QAction *loadAction = new QAction("Load", this);
-    connect(loadAction, &QAction::triggered, this, &MainWindow::loadActionTriggered);
+    connect(loadAction, &QAction::triggered, this, &XNetDumper::loadActionTriggered);
     assemblyMenu->addAction(loadAction);
 
     //Used for checking updates
-    QTimer::singleShot(0, this, &MainWindow::checkForUpdates);
+    QTimer::singleShot(0, this, &XNetDumper::checkForUpdates);
     currentDbCommit  = "e42e19a5082e641065122ebbbb24b42166a9e0f9";  // Replace with your initial commit
     latestDbCommit = "";
 
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::contextMenuRequested);
+    connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &XNetDumper::contextMenuRequested);
 }
 
-void MainWindow::checkForUpdates()
+QStringList XNetDumper::getProcesses()
 {
+    QStringList processList;
+
+#ifdef Q_OS_WIN
+    processList = getWindowsProcesses();
+#elif defined(Q_OS_MAC)
+    processList = getMacProcesses();
+#elif defined(Q_OS_LINUX)
+    processList = getLinuxProcesses();
+#endif
+
+    return processList;
+}
+
+#ifdef Q_OS_WIN
+QStringList XNetDumper::getWindowsProcesses() {
+    QStringList processList;
+    QStringList systemProcesses = {"Registry", "[System Process]","Secure System","System", "XNetDumper.exe"};
+
+    HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    if (hProcessSnap == INVALID_HANDLE_VALUE) {
+        return processList;
+    }
+
+    PROCESSENTRY32 pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32);
+
+    if (Process32First(hProcessSnap, &pe32)) {
+        do {
+            qint64 processId = pe32.th32ProcessID;
+            QString processName = QString::fromWCharArray(pe32.szExeFile);
+            HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+            if (hProcess != NULL) {
+                bool is64bit = Is64BitProcess(hProcess);
+                bool isNetProcess = NETProcess(processId);
+                CloseHandle(hProcess);
+                if (isNetProcess) {
+                    processList.append(QString("%1,%2,%3").arg(processId).arg(processName).arg(is64bit ? "64-bit" : "32-bit"));
+                }
+            }
+        } while (Process32Next(hProcessSnap, &pe32));
+    }
+
+    CloseHandle(hProcessSnap);
+
+    return processList;
+}
+bool XNetDumper::NETProcess(DWORD processID) {
+    HANDLE hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, processID);
+    if (hModuleSnap == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    MODULEENTRY32 me32;
+    me32.dwSize = sizeof(MODULEENTRY32);
+
+    if (Module32First(hModuleSnap, &me32)) {
+        do {
+            QString moduleName = QString::fromWCharArray(me32.szModule);
+            if (moduleName == "clr.dll" || moduleName == "mscorwks.dll" || moduleName == "coreclr.dll") {
+                CloseHandle(hModuleSnap);
+                return true;
+            }
+        } while (Module32Next(hModuleSnap, &me32));
+    }
+
+    CloseHandle(hModuleSnap);
+    return false;
+}
+
+
+bool XNetDumper::Is64BitProcess(HANDLE hProcess) {
+    BOOL bIsWow64 = FALSE;
+
+    typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
+    LPFN_ISWOW64PROCESS fnIsWow64Process;
+
+    fnIsWow64Process = (LPFN_ISWOW64PROCESS) GetProcAddress(GetModuleHandle(TEXT("kernel32")),"IsWow64Process");
+
+    if (NULL != fnIsWow64Process) {
+        if (!fnIsWow64Process(hProcess, &bIsWow64)) {
+            // handle error
+        }
+    }
+    return bIsWow64 == FALSE;
+}
+
+#elif defined(Q_OS_LINUX)
+QStringList XNetDumper::getLinuxProcesses() {
+    QStringList processList;
+
+    QDir procDir("/proc");
+    QStringList processDirs = procDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    for (const QString &processDir : processDirs) {
+        bool ok;
+        int pid = processDir.toInt(&ok);
+
+        if (ok) {
+            QString processName = getProcessNameLinux(pid);
+            QString architecture = getProcessArchitectureLinux(pid);
+            if (NETProcess(pid)) {
+                processList.append(QString("%1,%2,%3").arg(pid).arg(processName).arg(architecture));
+            }
+        }
+    }
+
+    return processList;
+}
+
+
+QString XNetDumper::getProcessNameLinux(int pid) {
+    QFile cmdlineFile(QString("/proc/%1/cmdline").arg(pid));
+    if (cmdlineFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QByteArray data = cmdlineFile.readAll();
+        return QString::fromUtf8(data).split(QChar('\0'), Qt::SkipEmptyParts).first();
+    }
+
+    return QString();
+}
+
+QString XNetDumper::getProcessArchitectureLinux(int pid) {
+    QProcess process;
+    process.start("file", QStringList() << QString("/proc/%1/exe").arg(pid));
+    process.waitForFinished();
+    QString output = process.readAllStandardOutput();
+    if (output.contains("64-bit")) {
+        return "64-bit";
+    } else if (output.contains("32-bit")) {
+        return "32-bit";
+    } else {
+        return "unknown";
+    }
+}
+    bool XNetDumper::NETProcess(qint64 processId) {
+        QProcess process;
+        process.start("cat", QStringList() << QString("/proc/%1/maps").arg(processId));
+        process.waitForFinished();
+        QString output = process.readAllStandardOutput();
+        return output.contains("libcoreclr.so") || output.contains("libmono.so");
+    }
+
+
+
+#elif defined(Q_OS_MAC)
+#include <sys/sysctl.h>
+#include <sys/proc_info.h>  // Include this for 'struct extern_proc'
+
+struct kinfo_proc {
+    struct extern_proc kp_proc;  // 'struct extern_proc' is defined in <sys/proc_info.h>
+};
+
+
+
+QStringList XNetDumper::getMacProcesses()
+{
+    QStringList processList;
+
+#ifdef Q_OS_MAC
+    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0};
+    size_t size;
+    sysctl(mib, 4, nullptr, &size, nullptr, 0);
+
+    struct kinfo_proc *procs = static_cast<struct kinfo_proc *>(malloc(size));
+    sysctl(mib, 4, procs, &size, nullptr, 0);
+
+    size_t count = size / sizeof(struct kinfo_proc);
+
+    for (size_t i = 0; i < count; ++i) {
+        QString processName = QString::fromUtf8(procs[i].kp_proc.p_comm);
+        processList.append(QString("%1,%2").arg(procs[i].kp_proc.p_pid).arg(processName));
+    }
+
+    free(procs);
+#endif
+
+    return processList;
+}
+#endif
+
+
+
+
+
+void XNetDumper::checkForUpdates()
+{
+
     QString currentVersion = "3.0.9";  // Replace with your current version
     bool updateAvailable = CheckForUpdate(currentVersion);
     if (updateAvailable) {
@@ -139,7 +314,7 @@ void MainWindow::checkForUpdates()
     }
 }
 
-bool MainWindow::CheckForUpdate(const QString &currentVersion)
+bool XNetDumper::CheckForUpdate(const QString &currentVersion)
 {
     QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
     sslConfig.setProtocol(QSsl::AnyProtocol); // or QSsl::TlsV1_3 if supported
@@ -191,6 +366,7 @@ bool MainWindow::CheckForUpdate(const QString &currentVersion)
     {
         qDebug() << "A new version is available.";
         QMessageBox msgBox;
+        msgBox.setWindowTitle("Update"); // Change this line
         msgBox.setText("A new version is available. Would you like to download it?");
         msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
         msgBox.setDefaultButton(QMessageBox::Yes);
@@ -222,7 +398,7 @@ bool MainWindow::CheckForUpdate(const QString &currentVersion)
     }
 }
 
-void MainWindow::loadActionTriggered()
+void XNetDumper::loadActionTriggered()
 {
     QString filePath = QFileDialog::getOpenFileName(this, "Select DLL", QDir::currentPath(), "Dynamic Link Libraries (*.dll)");
     if (filePath.isEmpty()) {
@@ -246,25 +422,25 @@ void MainWindow::loadActionTriggered()
     }
 }
 
-void MainWindow::fileActionTriggered() {
+void XNetDumper::fileActionTriggered() {
     // Code to execute when the "File" action is triggered
 }
 
-void MainWindow::openActionTriggered() {
+void XNetDumper::openActionTriggered() {
     // Code to execute when the "Open" action is triggered
 }
 
-void MainWindow::saveActionTriggered() {
+void XNetDumper::saveActionTriggered() {
     // Code to execute when the "Save" action is triggered
 }
 
-void MainWindow::onSearchShortcut() {
+void XNetDumper::onSearchShortcut() {
     SearchDialog *searchDialog = new SearchDialog(this);
-    connect(searchDialog, &SearchDialog::searchRequested, this, &MainWindow::performSearch);
+    connect(searchDialog, &SearchDialog::searchRequested, this, &XNetDumper::performSearch);
     searchDialog->exec();
 }
 
-void MainWindow::performSearch(const QString &searchText) {
+void XNetDumper::performSearch(const QString &searchText) {
     static QTableWidgetItem *previousSelectedItem = nullptr;
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
     ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -298,8 +474,23 @@ void MainWindow::performSearch(const QString &searchText) {
     }
 }
 
+void XNetDumper::ProcessInfo()
+{
+    QModelIndexList selectedIndexes = ui->tableWidget->selectionModel()->selectedIndexes();
+    if (selectedIndexes.isEmpty())
+    {
+        QMessageBox::information(this, "No Selection", "Please select a process from the list.");
+        return;
+    }
+
+    int selectedRow = selectedIndexes.first().row();
+    DWORD processId = ui->tableWidget->item(selectedRow, 0)->text().toUInt(); // Assuming the process ID is in the first column
+    ProcessInformation(processId);
+}
+
+
 // Implement the showModulesForProcess function
-void MainWindow::showModulesForProcess()
+void XNetDumper::showModulesForProcess()
 {
     QModelIndexList selectedIndexes = ui->tableWidget->selectionModel()->selectedIndexes();
     if (selectedIndexes.isEmpty())
@@ -315,17 +506,164 @@ void MainWindow::showModulesForProcess()
 }
 
 // Implement the contextMenuRequested function
-void MainWindow::contextMenuRequested(const QPoint &pos)
+void XNetDumper::contextMenuRequested(const QPoint &pos)
 {
-    QMenu contextMenu(tr("Context Menu"), this);
-    QAction showModulesAction(tr("Show Loaded Modules"), this);
-    connect(&showModulesAction, &QAction::triggered, this, &MainWindow::showModulesForProcess);
+    // Ensure that there is an item at the clicked position
+    QTableWidgetItem *item = ui->tableWidget->itemAt(pos);
+    if (item == nullptr) {
+        return;
+    }
 
+    QMenu contextMenu(tr("Context Menu"), this);
+
+    // Add a new action for your specific operation
+    QAction processInfoAction(tr("Process Information"), this);
+    connect(&processInfoAction, &QAction::triggered, this, &XNetDumper::ProcessInfo);
+    contextMenu.addAction(&processInfoAction);
+
+    QAction showModulesAction(tr("Show Loaded Modules"), this);
+    connect(&showModulesAction, &QAction::triggered, this, &XNetDumper::showModulesForProcess);
     contextMenu.addAction(&showModulesAction);
+
+
+
     contextMenu.exec(ui->tableWidget->mapToGlobal(pos));
 }
 
-void MainWindow::getAndShowLoadedModulesForProcess(const QString &processName)
+
+void XNetDumper::ProcessInformation(DWORD processId)
+{
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+    if (hProcess == NULL)
+    {
+        QMessageBox::warning(this, "Error", "Failed to open process, error " + QString::number(GetLastError()));
+        return;
+    }
+
+    HMODULE hModule;
+    DWORD cbNeeded;
+    if (!EnumProcessModules(hProcess, &hModule, sizeof(hModule), &cbNeeded))
+    {
+        QMessageBox::warning(this, "Error", "Failed to enumerate process modules, error " + QString::number(GetLastError()));
+        CloseHandle(hProcess);
+        return;
+    }
+
+    IMAGE_DOS_HEADER dosHeader;
+    IMAGE_NT_HEADERS ntHeader;
+
+    if (ReadProcessMemory(hProcess, hModule, &dosHeader, sizeof(dosHeader), NULL))
+    {
+        if (dosHeader.e_magic == IMAGE_DOS_SIGNATURE)
+        {
+            if (ReadProcessMemory(hProcess, (LPBYTE)hModule + dosHeader.e_lfanew, &ntHeader, sizeof(ntHeader), NULL))
+            {
+                if (ntHeader.Signature == IMAGE_NT_SIGNATURE)
+                {
+                    QDialog informationDialog(this);
+                    informationDialog.setWindowTitle("Process Information");
+                    QVBoxLayout *layout = new QVBoxLayout(&informationDialog);
+
+                    // Display Process Name
+                    TCHAR szProcessName[MAX_PATH];
+                    if (GetModuleFileNameEx(hProcess, hModule, szProcessName, MAX_PATH) > 0)
+                    {
+                        PTSTR pszProcessName = _tcsrchr(szProcessName, TEXT('\\'));
+                        if (pszProcessName != NULL)
+                        {
+                            pszProcessName++; // Move past the backslash
+                        }
+                        else
+                        {
+                            pszProcessName = szProcessName; // Use the full path if the backslash is not found
+                        }
+
+                        QLabel *processNameLabel = new QLabel("Process Name: " + QString::fromWCharArray(pszProcessName));
+                        layout->addWidget(processNameLabel);
+
+                        QLabel *baseAddressLabel = new QLabel("Base Address of Module: " + QString("0x%1").arg((quintptr)hModule, 0, 16));
+                        layout->addWidget(baseAddressLabel);
+
+                        // PE Optional Header Information
+                        QLabel *peHeaderLabel = new QLabel("<b>PE Optional Header:</b>");
+                        layout->addWidget(peHeaderLabel);
+
+                        QLabel *magicLabel = new QLabel("  Magic: 0x" + QString::number(ntHeader.OptionalHeader.Magic, 16));
+                        layout->addWidget(magicLabel);
+
+                        QLabel *majorLinkerVersionLabel = new QLabel("  Major Linker Version: " + QString::number(ntHeader.OptionalHeader.MajorLinkerVersion));
+                        layout->addWidget(majorLinkerVersionLabel);
+
+                        QLabel *minorLinkerVersionLabel = new QLabel("  Minor Linker Version: " + QString::number(ntHeader.OptionalHeader.MinorLinkerVersion));
+                        layout->addWidget(minorLinkerVersionLabel);
+
+                        QLabel *sizeOfCodeLabel = new QLabel("  Size of Code: " + QString::number(ntHeader.OptionalHeader.SizeOfCode) + " bytes");
+                        layout->addWidget(sizeOfCodeLabel);
+
+                        DWORD comDescriptorRVA = ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress;
+                        LPVOID comDescriptorAddress = (LPBYTE)hModule + comDescriptorRVA;
+                        DWORD value;
+                        SIZE_T bytesRead;
+                        bool comDescriptorFound = false;
+
+                        QLabel *dataDirectoryLabel = new QLabel("<b>Data Directory:</b>");
+                        layout->addWidget(dataDirectoryLabel);
+
+                        // Read COM_DESCRIPTOR value only if it exists
+                        if (comDescriptorRVA != 0 &&
+                            ReadProcessMemory(hProcess, comDescriptorAddress, &value, sizeof(DWORD), &bytesRead) &&
+                            bytesRead == sizeof(DWORD))
+                        {
+                            comDescriptorFound = true;
+                            QLabel *comDescriptorInfoLabel = new QLabel("  Com_Descriptor: Address - " + QString("0x%1").arg((quintptr)comDescriptorAddress, 0, 16) + ", Value - " + QString("0x%1").arg(value, 0, 16));
+                            layout->addWidget(comDescriptorInfoLabel);
+                        }
+
+                        DWORD iatRVA = ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress;
+                        DWORD iatSize = ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size;
+
+                        LPVOID iatAddress = (LPBYTE)hModule + iatRVA;
+                        QLabel *iatInfoLabel = new QLabel("  IAT: Address - " + QString("0x%1").arg((quintptr)iatAddress, 0, 16) + ", Size - " + QString::number(iatSize) + " bytes");
+                        layout->addWidget(iatInfoLabel);
+
+
+                        // Metadata Header Information
+                        QLabel *metadataHeaderLabel = new QLabel("<b>Metadata Header:</b>");
+                        layout->addWidget(metadataHeaderLabel);
+
+                        IMAGE_DATA_DIRECTORY metadataDirectory = ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR];
+                        if (metadataDirectory.VirtualAddress != 0)
+                        {
+                            IMAGE_COR20_HEADER metadataHeader;
+                            LPVOID metadataAddress = (LPBYTE)hModule + metadataDirectory.VirtualAddress;
+
+                            if (ReadProcessMemory(hProcess, metadataAddress, &metadataHeader, sizeof(metadataHeader), NULL))
+                            {
+                                QLabel *metadataSignatureLabel = new QLabel("  Signature: 0x" + QString::number(metadataHeader.MajorRuntimeVersion, 16) +
+                                                                            QString::number(metadataHeader.MinorRuntimeVersion, 16));
+                                layout->addWidget(metadataSignatureLabel);
+
+                                QLabel *metadataMajorVersionLabel = new QLabel("  Major Version: " + QString::number(metadataHeader.MajorRuntimeVersion));
+                                layout->addWidget(metadataMajorVersionLabel);
+
+                                QLabel *metadataMinorVersionLabel = new QLabel("  Minor Version: " + QString::number(metadataHeader.MinorRuntimeVersion));
+                                layout->addWidget(metadataMinorVersionLabel);
+                            }
+                        }
+
+                        // Execute the dialog
+                        informationDialog.exec();
+                    }
+                }
+            }
+        }
+    }
+
+    // Close the process handle
+    CloseHandle(hProcess);
+}
+
+void XNetDumper::getAndShowLoadedModulesForProcess(const QString &processName)
 {
     qDebug() << "Getting loaded DLL modules for process:" << processName;
 
@@ -391,7 +729,7 @@ void MainWindow::getAndShowLoadedModulesForProcess(const QString &processName)
 
 
 // Assuming your QTableWidget is named tableWidget
-void MainWindow::onButtonClick()
+void XNetDumper::onButtonClick()
 {
     // Check if a cell is selected in the table
     QModelIndexList selectedIndexes = ui->tableWidget->selectionModel()->selectedIndexes();
@@ -405,7 +743,7 @@ void MainWindow::onButtonClick()
 }
 
 
-MainWindow::~MainWindow()
+XNetDumper::~XNetDumper()
 {
     delete ui;
 }

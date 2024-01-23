@@ -14,9 +14,9 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Concurren
 
 set(PROJECT_SOURCES
         main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+        XNetDumper.cpp
+        XNetDumper.h
+        XNetDumper.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
