@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MemoryModificationDialog</class>
+ <widget class="QWidget" name="MemoryModificationDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>286</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Memory Modify</string>
+  </property>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>9</y>
+     <width>382</width>
+     <height>70</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Memory Address:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEditAddress">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>85</y>
+     <width>382</width>
+     <height>24</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEditVaule">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>191</y>
+     <width>382</width>
+     <height>24</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>115</y>
+     <width>382</width>
+     <height>70</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Vaule:</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushbuttonModify">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>250</y>
+     <width>187</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Patch</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushbuttonCancel">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>250</y>
+     <width>187</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cancel</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

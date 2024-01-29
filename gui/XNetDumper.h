@@ -3,7 +3,9 @@
 
 #include <QMainWindow>
 
-#include <windows.h>
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#endif
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -16,12 +18,14 @@ class XNetDumper : public QMainWindow
     Q_OBJECT
     QStringList getRunningProcesses();
 public:
+    Ui::XNetDumper *ui;
     XNetDumper(QWidget *parent = nullptr);
     ~XNetDumper();
+    void openMemoryModificationWindow();
     bool NETProcess(DWORD processID);
     bool Is64BitProcess(HANDLE hProcess);
+    void ProcessInformationLinuxMac(DWORD processId);
     void ProcessInformation(DWORD processId);
-    DWORD getComDescriptorValue(HANDLE hProcess, HMODULE hModule);
     void displayComDescriptorValue(DWORD processId, const QString& processName, DWORD comDescriptorValue);
     QStringList getProcesses();
     bool isSystemProcess(const QString &processName);
@@ -36,7 +40,7 @@ public:
     QStringList getLinuxProcesses();
     QStringList getWindowsProcesses();
     QStringList getMacProcesses();
-
+    void refreshTableWidget();
 public slots:
     void onButtonClick();
     void showModulesForProcess();
@@ -49,8 +53,10 @@ public slots:
     void loadActionTriggered();
 signals:
     void updateAvailable();
+
+
 private:
-    Ui::XNetDumper *ui;
+
 };
 
 #endif // XNETDUMPER_H

@@ -1,7 +1,6 @@
 #include "updater.h"
 #include "ui_updater.h"
 #include <QFile>
-
 #include <QBuffer>
 #include <QtConcurrent>
 
@@ -11,8 +10,6 @@ updater::updater(QWidget *parent)
 {
     ui->setupUi(this);
     qDebug() << "updater constructor called.";
-    // Assuming UpdaterThread is a member variable of updater class
-
     connect(ui->checkBox, &QCheckBox::stateChanged, this, &updater::onCheckBoxStateChanged);
     connect(this, &updater::downloadUrlSet, this, &updater::onDownloadUrlSet);
     resize(414, 118);  // Adjust the size as needed
@@ -21,16 +18,8 @@ updater::updater(QWidget *parent)
     QPixmap image(":/images/Die.png");
     ui->imageLabel->setPixmap(image);
     ui->imageLabel->setScaledContents(true);
-    // Find and connect the "cancelButton" to the slot
     connect(ui->cancelButton, &QPushButton::clicked, this, &updater::onCancelButtonClicked);
-    // Assume that `updater` is an instance of `updater`
-
-    // Declare the QTimer as a member variable in your class
     QTimer timer;
-
-    // Add this line in your class constructor to connect the timer to the slot
-
-    // Start the timer in your `onDownloadFinished` function
     timer.start(100);  // Adjust the interval as needed
 }
 
@@ -61,17 +50,16 @@ void updater::setMessage(const QString &message)
 
 void updater::setDownloadInfo(const QString &downloadUrl, const QString &destinationPath)
 {
-    this->downloadUrl = downloadUrl;  // Assign the value to the member variable
-    this->destinationPath = destinationPath;  // Assign the value to the member variable
+    this->downloadUrl = downloadUrl;
+    this->destinationPath = destinationPath;
     ui->labelMessage->setText("Downloading...");
-    ui->textEdit->setText(downloadUrl); // Display the download URL in the textbox
+    ui->textEdit->setText(downloadUrl);
 
 
 }
 
 void updater::startDownload(const QUrl &downloadUrl, const QString &destinationPath)
 {
-
     // Reset UI
     ui->progressBar->setValue(0);
     ui->labelMessage->setText("Downloading...");
@@ -79,8 +67,6 @@ void updater::startDownload(const QUrl &downloadUrl, const QString &destinationP
     this->downloadUrl = downloadUrl.toString();
     emit downloadUrlSet(this->downloadUrl);
 
-    // Display the download URL in the textbox if the checkbox is checked
-    // Debug: Print out the downloadUrl and checkbox state
     // qDebug() << "Download URL:" << downloadUrl.toString();
     qDebug() << "In startDownload, this:" << this;
 
@@ -145,11 +131,8 @@ void updater::onCancelButtonClicked()
         reply->deleteLater();
         reply = nullptr;
 
-        // Optionally, you can perform additional cleanup or update UI
-        // ...
-
         // Close the dialog
-        reject();  // Use reject() instead of accept() to indicate cancellation
+        reject();
     }
 }
 
@@ -183,7 +166,6 @@ void updater::onDownloadFinished() {
         qDebug() << "Network error:" << reply->errorString();
         return;
     }
-
 
     // The download is complete, so extraction can now be performed
     QString destinationDir = QApplication::applicationDirPath() + "/";
@@ -251,6 +233,6 @@ void updater::onCheckBoxStateChanged(int state)
 
 void updater::ShowReleaseNotesDialog(const QString &releaseNotes)
 {
-    // Implementation of the function
+
 }
 

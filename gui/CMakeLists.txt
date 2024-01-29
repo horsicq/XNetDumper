@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(XNetDumper VERSION 0.1 LANGUAGES CXX)
 
+# Set up project options
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -9,71 +10,71 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Concurrent)
+# Find required Qt components
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Concurrent Core Qml)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Concurrent Core Qml)
 
-set(PROJECT_SOURCES
-        main.cpp
-        XNetDumper.cpp
-        XNetDumper.h
-        XNetDumper.ui
+# Include external CMake files
+file(GLOB MY_DIRECTORY_FILES "${PROJECT_SOURCE_DIR}/../dep/die_script/*.cmake")
+foreach(FILE ${MY_DIRECTORY_FILES})
+    include(${FILE})
+endforeach()
+
+# Source files
+file(GLOB_RECURSE PROJECT_SOURCES
+    "../dep/die_script/*.cpp"
+    "../dep/Formats/*.cpp"
+    "../dep/XArchive/*.cpp"
+    "../dep/XCapstone/*.cpp"
+    "../dep/XDEX/*.cpp"
+    "../dep/XPDF/*.cpp"
+    main.cpp
+    XNetDumper.cpp
+    XNetDumper.h
+    XNetDumper.ui
+    DLLInfoDialog.cpp
+    DLLInfoDialog.h
+    LoadAssembly.h
+    searchdialog.cpp
+    searchdialog.h
+    updater.cpp
+    updater.h
+    updater.ui
+    loadedmodulesdialog.h
+    loadedmodulesdialog.cpp
+    memorymodificationdialog.cpp
+    memorymodificationdialog.h
 )
 
+# Create executable or library based on Qt version
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(XNetDumper
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        DLLInfoDialog.cpp DLLInfoDialog.h LoadAssembly.h searchdialog.cpp searchdialog.h updater.cpp updater.h updater.ui
-        loadedmodulesdialog.h loadedmodulesdialog.cpp
+    qt_add_executable(XNetDumper MANUAL_FINALIZATION ${PROJECT_SOURCES} LoadAssembly.cpp
+        memorymodificationdialog.h memorymodificationdialog.cpp memorymodificationdialog.ui
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET XNetDumper APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
     if(ANDROID)
-        add_library(XNetDumper SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+        add_library(XNetDumper SHARED ${PROJECT_SOURCES})
     else()
-        add_executable(XNetDumper
-            ${PROJECT_SOURCES}
-        )
+        add_executable(XNetDumper ${PROJECT_SOURCES})
     endif()
 endif()
 
-target_link_libraries(XNetDumper PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.XNetDumper)
-endif()
-set_target_properties(XNetDumper PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-)
-
-include(GNUInstallDirs)
-install(TARGETS XNetDumper
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
+# Finalize Qt executable if using Qt 6
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(XNetDumper)
 endif()
 
+# Link libraries
 target_link_libraries(XNetDumper PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Concurrent
-    ${CMAKE_CURRENT_SOURCE_DIR}/die.lib
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Qml
+    bzip2
+    lzma
+    zlib
+    Crypt32
+    Wintrust
+    capstone
 )

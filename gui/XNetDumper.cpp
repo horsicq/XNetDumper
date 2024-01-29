@@ -1,35 +1,37 @@
 #include "XNetDumper.h"
 #include "./ui_XNetDumper.h"
 #include "loadedmodulesdialog.h"
-#include "qjsonarray.h"
-#include "qjsondocument.h"
-#include "qjsonobject.h"
-#include "qlibrary.h"
+#include "memorymodificationdialog.h"
+#include "updater.h"
+#include "DLLInfoDialog.h"
+#include "LoadAssembly.h"
+#include "searchdialog.h"
+
+#include <QtCore>
 #include <QProcess>
 #include <QTableWidgetItem>
 #include <QApplication>
 #include <QStyleFactory>
 #include <QMessageBox>
-#include <QTimer>
-#include <QVBoxLayout>
 #include <QDebug>
-#include <QSettings>
 #include <QFileDialog>
 #include <QDir>
-#include "DLLInfoDialog.h"
-#include "LoadAssembly.h"
-#include "searchdialog.h"
 #include <QShortcut>
-#include "updater.h"
 #include <QVersionNumber>
-#include <QtGlobal>
-#include <tlhelp32.h>
-#include <Psapi.h>
-#include <QDialog>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QFileInfo>
+
+#ifdef Q_OS_WIN
+#include <psapi.h>
 #include <tchar.h>
+#include <tlhelp32.h>
+#define OS_PATH_SEPARATOR "\\"
+#elif defined(Q_OS_MAC)
+#include <sys/sysctl.h>
+#include <sys/proc_info.h>
+#endif
+
 
 
 XNetDumper::XNetDumper(QWidget *parent)
@@ -82,13 +84,22 @@ XNetDumper::XNetDumper(QWidget *parent)
 
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(ui->tableWidget);
-    layout->addWidget(ui->pushButton);
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    buttonLayout->addWidget(ui->pushButton);
     ui->pushButton->setFixedSize(91, 24);
     connect(ui->pushButton, &QPushButton::clicked, this, &XNetDumper::onButtonClick);
+    ui->refreshButton->setFixedSize(91, 24);
+    buttonLayout->addWidget(ui->refreshButton);
+    connect(ui->refreshButton, &QPushButton::clicked, this, &XNetDumper::refreshTableWidget);
 
-    ui->centralwidget->setLayout(layout);
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(ui->tableWidget);
+    layout->addLayout(buttonLayout);
+    layout->setAlignment(buttonLayout, Qt::AlignLeft);
+    QWidget *centralWidget = new QWidget(this);
+    centralWidget->setLayout(layout);
+    setCentralWidget(centralWidget);
 
     QMenu *fileMenu = menuBar()->addMenu("File");
     // Create a "Open" action and add it to the "File" menu
@@ -114,7 +125,34 @@ XNetDumper::XNetDumper(QWidget *parent)
 
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &XNetDumper::contextMenuRequested);
+
 }
+
+void XNetDumper::refreshTableWidget()
+{
+
+    ui->tableWidget->clearContents();
+    ui->tableWidget->setRowCount(0);
+
+
+    QStringList processList = getProcesses();
+    QSet<QString> addedProcesses;
+    for (const QString &process : processList) {
+        QStringList parts = process.split(",", Qt::SkipEmptyParts);
+        if (parts.size() >= 2) {
+            QString processName = parts[1];
+            if (!addedProcesses.contains(processName)) {
+                int row = ui->tableWidget->rowCount();
+                ui->tableWidget->insertRow(row);
+                ui->tableWidget->setItem(row, 0, new QTableWidgetItem(parts[0]));
+                ui->tableWidget->setItem(row, 1, new QTableWidgetItem(processName));
+                ui->tableWidget->setItem(row, 2, new QTableWidgetItem(parts[2]));
+                addedProcesses.insert(processName);
+            }
+        }
+    }
+}
+
 
 QStringList XNetDumper::getProcesses()
 {
@@ -260,11 +298,8 @@ QString XNetDumper::getProcessArchitectureLinux(int pid) {
         return output.contains("libcoreclr.so") || output.contains("libmono.so");
     }
 
-
-
 #elif defined(Q_OS_MAC)
-#include <sys/sysctl.h>
-#include <sys/proc_info.h>  // Include this for 'struct extern_proc'
+
 
 struct kinfo_proc {
     struct extern_proc kp_proc;  // 'struct extern_proc' is defined in <sys/proc_info.h>
@@ -299,18 +334,15 @@ QStringList XNetDumper::getMacProcesses()
 #endif
 
 
-
-
-
 void XNetDumper::checkForUpdates()
 {
 
     QString currentVersion = "3.0.9";  // Replace with your current version
     bool updateAvailable = CheckForUpdate(currentVersion);
     if (updateAvailable) {
-        qDebug() << "Update is available.";
+        //qDebug() << "Update is available.";
     } else {
-        qDebug() << "No updates available.";
+        //qDebug() << "No updates available.";
     }
 }
 
@@ -320,7 +352,7 @@ bool XNetDumper::CheckForUpdate(const QString &currentVersion)
     sslConfig.setProtocol(QSsl::AnyProtocol); // or QSsl::TlsV1_3 if supported
 
     QSslConfiguration::setDefaultConfiguration(sslConfig);
-    qDebug() << "Checking for updates...";
+   // qDebug() << "Checking for updates...";
     QNetworkAccessManager manager;
     QUrl serverUrl("https://horsicq.github.io/die_update.json");
     QNetworkReply *reply = manager.get(QNetworkRequest(serverUrl));
@@ -330,7 +362,7 @@ bool XNetDumper::CheckForUpdate(const QString &currentVersion)
     loop.exec();
     if (reply->error() != QNetworkReply::NoError)
     {
-        qDebug() << "Network error:" << reply->errorString();
+        //qDebug() << "Network error:" << reply->errorString();
         QMessageBox::critical(this, "Error", "Failed to check for updates. Error: " + reply->errorString());
         reply->deleteLater();
         return false;
@@ -338,15 +370,15 @@ bool XNetDumper::CheckForUpdate(const QString &currentVersion)
 
     QByteArray responseData = reply->readAll();
     reply->deleteLater();
-    qDebug() << "Server Response:" << responseData;
+    //qDebug() << "Server Response:" << responseData;
     QJsonDocument jsonDocument = QJsonDocument::fromJson(responseData);
-    qDebug() << "JSON Response:" << jsonDocument.toJson(QJsonDocument::Indented);
+    //qDebug() << "JSON Response:" << jsonDocument.toJson(QJsonDocument::Indented);
     QJsonObject rootObject = jsonDocument.object();
     QJsonArray updatesArray = rootObject.value("updates").toArray();
     if (updatesArray.isEmpty())
     {
 
-        qDebug() << "Empty updates array.";
+       // qDebug() << "Empty updates array.";
         return false;
     }
 
@@ -359,12 +391,12 @@ bool XNetDumper::CheckForUpdate(const QString &currentVersion)
     // Convert version strings to QVersionNumber
     QVersionNumber currentVer = QVersionNumber::fromString(currentVersion);
     QVersionNumber latestVer = QVersionNumber::fromString(latestVersion);
-    qDebug() << "Latest Version:" << latestVersion;
-    qDebug() << "Download URL:" << downloadUrl;
+   // qDebug() << "Latest Version:" << latestVersion;
+   // qDebug() << "Download URL:" << downloadUrl;
 
     if (currentVersion != latestVersion)
     {
-        qDebug() << "A new version is available.";
+        //qDebug() << "A new version is available.";
         QMessageBox msgBox;
         msgBox.setWindowTitle("Update"); // Change this line
         msgBox.setText("A new version is available. Would you like to download it?");
@@ -378,11 +410,11 @@ bool XNetDumper::CheckForUpdate(const QString &currentVersion)
             QUrl url(downloadUrl);
             QString filename = QFileInfo(url.path()).fileName();
             destinationPath = QApplication::applicationDirPath() + "/" + filename;
-            qDebug() << "Destination Path:" << destinationPath;
+           // qDebug() << "Destination Path:" << destinationPath;
             updater *downloadDialog;
 
 
-            qDebug() << "Creating DownloadProgressDialog...";
+           // qDebug() << "Creating DownloadProgressDialog...";
             downloadDialog = new updater(this);
 
             QObject::connect(downloadDialog, &updater::downloadProgress, downloadDialog, &updater::updateDownloadProgress);
@@ -392,7 +424,7 @@ bool XNetDumper::CheckForUpdate(const QString &currentVersion)
         }
         if (ret == QMessageBox::No)
         {
-            qDebug() << "User chose not to update. Update cancelled.";
+            //qDebug() << "User chose not to update. Update cancelled.";
 
         }
     }
@@ -406,7 +438,8 @@ void XNetDumper::loadActionTriggered()
     }
     QString absolutePath = QDir::toNativeSeparators(QFileInfo(filePath).absoluteFilePath());
 
-    QLibrary library(absolutePath);
+    LoadAssembly loadAssembly(absolutePath);
+    QLibrary library(loadAssembly.GetPath());
     if (library.load()) {
         qDebug() << "DLL loaded successfully: " << absolutePath;
         QString assemblyInfo = GetAssemblyInfo(&library);
@@ -421,7 +454,6 @@ void XNetDumper::loadActionTriggered()
         QMessageBox::critical(this, "DLL Loading Error", "Failed to load DLL:\n" + absolutePath + "\n\nError: " + library.errorString());
     }
 }
-
 void XNetDumper::fileActionTriggered() {
     // Code to execute when the "File" action is triggered
 }
@@ -463,7 +495,6 @@ void XNetDumper::performSearch(const QString &searchText) {
                     }
                     previousSelectedItem = item;
                 } else {
-                    // If the search text is not found or the item is not selected, reset the font and deselect the item
                     font.setBold(false);
                     item->setFont(font);
 
@@ -505,7 +536,6 @@ void XNetDumper::showModulesForProcess()
     getAndShowLoadedModulesForProcess(processName);
 }
 
-// Implement the contextMenuRequested function
 void XNetDumper::contextMenuRequested(const QPoint &pos)
 {
     // Ensure that there is an item at the clicked position
@@ -516,7 +546,7 @@ void XNetDumper::contextMenuRequested(const QPoint &pos)
 
     QMenu contextMenu(tr("Context Menu"), this);
 
-    // Add a new action for your specific operation
+    // Add actions for existing functionalities
     QAction processInfoAction(tr("Process Information"), this);
     connect(&processInfoAction, &QAction::triggered, this, &XNetDumper::ProcessInfo);
     contextMenu.addAction(&processInfoAction);
@@ -525,14 +555,67 @@ void XNetDumper::contextMenuRequested(const QPoint &pos)
     connect(&showModulesAction, &QAction::triggered, this, &XNetDumper::showModulesForProcess);
     contextMenu.addAction(&showModulesAction);
 
+    // Add an action for memory modification
+    QAction modifyMemoryAction(tr("Modify Memory"), this);
+    connect(&modifyMemoryAction, &QAction::triggered, this, &XNetDumper::openMemoryModificationWindow);
+    contextMenu.addAction(&modifyMemoryAction);
 
-
+    // Show the context menu at the clicked position
     contextMenu.exec(ui->tableWidget->mapToGlobal(pos));
+}
+
+void XNetDumper::openMemoryModificationWindow()
+{
+    // Get the selected process ID
+    QTableWidgetItem *item = ui->tableWidget->currentItem();
+    if (item != nullptr) {
+        DWORD processId = item->text().toUInt();
+
+        // Open MemoryModificationDialog with the selected process ID
+        MemoryModificationDialog modificationDialog(processId);
+        modificationDialog.exec();
+    }
+}
+
+void XNetDumper::ProcessInformationLinuxMac(DWORD processId)
+{
+
+    QProcess process;
+
+#if defined(Q_OS_LINUX)
+    process.start("cat", QStringList() << "/proc/" + QString::number(processId) + "/cmdline");
+#elif defined(Q_OS_MAC)
+    process.start("sysctl", QStringList() << "kern.proc.pid=" + QString::number(processId) << " | awk -F '\\0' '{print $2}'");
+#endif
+
+    process.waitForFinished();
+
+    if (process.exitCode() != 0)
+    {
+        QMessageBox::warning(this, "Error", "Failed to retrieve process information.");
+        return;
+    }
+
+    QString processName = process.readAll().trimmed();
+    if (processName.isEmpty())
+    {
+        QMessageBox::warning(this, "Error", "Failed to retrieve process name.");
+        return;
+    }
+
+    QDialog informationDialog(this);
+    informationDialog.setWindowTitle("Process Information");
+    QVBoxLayout *layout = new QVBoxLayout(&informationDialog);
+
+    QLabel *processNameLabel = new QLabel("Process Name: " + processName);
+    layout->addWidget(processNameLabel);
+    informationDialog.exec();
 }
 
 
 void XNetDumper::ProcessInformation(DWORD processId)
 {
+    #ifdef Q_OS_WIN
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
     if (hProcess == NULL)
     {
@@ -661,17 +744,36 @@ void XNetDumper::ProcessInformation(DWORD processId)
 
     // Close the process handle
     CloseHandle(hProcess);
+#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+    // Call the Linux and macOS-specific function
+    ProcessInformationLinuxMac(processId);
+
+#else
+    QMessageBox::warning(this, "Error", "Unsupported operating system.");
+#endif
 }
+
 
 void XNetDumper::getAndShowLoadedModulesForProcess(const QString &processName)
 {
     qDebug() << "Getting loaded DLL modules for process:" << processName;
-
     QStringList dllModules;
+    QString program;
+    QStringList arguments;
+#ifdef Q_OS_WIN
+    program = "tasklist.exe";
+    arguments << "/M" << "/FI" << "IMAGENAME eq " + processName;
+#elif Q_OS_LINUX
+    program = "bash";
+    arguments << "-c" << "lsof -p $(pidof " + processName + ") | awk '{if ($5==\"REG\") print $9}'";
+#elif Q_OS_MAC
+    program = "bash";
+    arguments << "-c" << "lsof -p $(pgrep " + processName + ") | awk '{if ($4==\"txt\") print $9}'";
+#endif
 
     QProcess process;
-    process.setProgram("tasklist.exe");
-    process.setArguments({"/M", "/FI", "IMAGENAME eq " + processName});
+    process.setProgram(program);
+    process.setArguments(arguments);
     process.start();
     process.waitForFinished();
 
@@ -680,7 +782,7 @@ void XNetDumper::getAndShowLoadedModulesForProcess(const QString &processName)
 
     if (!error.isEmpty())
     {
-        qDebug() << "Error running tasklist:" << error;
+        qDebug() << "Error running command:" << error;
         return;
     }
 
@@ -689,6 +791,7 @@ void XNetDumper::getAndShowLoadedModulesForProcess(const QString &processName)
     {
         qDebug() << "Processing line:" << line;
 
+#ifdef Q_OS_WIN
         // Skip the header line
         if (line.startsWith("Image Name", Qt::CaseInsensitive))
             continue;
@@ -711,22 +814,31 @@ void XNetDumper::getAndShowLoadedModulesForProcess(const QString &processName)
                 qDebug() << "Added DLL module:" << moduleName;
             }
         }
+#elif Q_OS_LINUX || Q_OS_MAC
+                QString moduleName = line.trimmed();
+        qDebug() << "Found module:" << moduleName;
+
+        if (moduleName.endsWith(".so", Qt::CaseInsensitive) || moduleName.endsWith(".dylib", Qt::CaseInsensitive))
+        {
+            dllModules.append(moduleName);
+            qDebug() << "Added shared object module:" << moduleName;
+        }
+#endif
     }
 
     // Now you can perform an action directly with the loaded DLL modules
     if (dllModules.isEmpty())
     {
-        QMessageBox::information(this, "No DLL Modules", "No loaded DLL modules found for the selected process.");
+        QMessageBox::information(this, "No Modules", "No loaded modules found for the selected process.");
     }
     else
     {
-        // Show the LoadedModulesDialog with the loaded DLL modules
+        // Show the LoadedModulesDialog with the loaded modules
         LoadedModulesDialog *dialog = new LoadedModulesDialog(this);
         dialog->setLoadedModules(dllModules);
         dialog->exec();
     }
 }
-
 
 // Assuming your QTableWidget is named tableWidget
 void XNetDumper::onButtonClick()

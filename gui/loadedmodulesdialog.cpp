@@ -17,14 +17,11 @@ LoadedModulesDialog::LoadedModulesDialog(QWidget *parent)
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(tableWidget);
 
-    // Create and set up the button
     button = new QPushButton("Dump", this);
     connect(button, SIGNAL(clicked()), this, SLOT(onButtonClick()));
     layout->addWidget(button);
     setLayout(layout);
-
-    // Set a minimum size for the dialog to avoid size constraints
-    setMinimumSize(200, 200);  // Adjust the size as needed
+    setMinimumSize(200, 200);
 }
 
 void LoadedModulesDialog::setLoadedModules(const QStringList &modules)
@@ -39,6 +36,5 @@ void LoadedModulesDialog::setLoadedModules(const QStringList &modules)
 
 void LoadedModulesDialog::onButtonClick()
 {
-    // Display a message box indicating that the functionality is not implemented yet
     QMessageBox::information(this, "Not Implemented", "This functionality is not implemented yet.");
 }
