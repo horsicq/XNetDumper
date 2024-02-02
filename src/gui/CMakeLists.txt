@@ -18,7 +18,7 @@ add_definitions(-DUSE_ARCHIVE)
 add_definitions(-DUSE_YARA)
 add_definitions(-DUSE_XPROCESS)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../depXProcessWidget/xprocesswidget.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XProcessWidget/xprocesswidget.cmake)
 
 set(PROJECT_SOURCES
         ${XPROCESSWIDGET_SOURCES}
