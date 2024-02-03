@@ -154,3 +154,6 @@
 [submodule "dep/XPDF"]
 	path = dep/XPDF
 	url = https://github.com/horsicq/xpdf
+[submodule "dep/Detect-It-Easy"]
+	path = dep/Detect-It-Easy
+	url = https://github.com/horsicq/Detect-It-Easy
