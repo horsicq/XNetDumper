@@ -8,6 +8,8 @@ GuiMainWindow::GuiMainWindow(QWidget *parent)
     ui->setupUi(this);
 
     XProcess::setDebugPrivilege(true);
+
+    ui->widgetProcesses->reload();
 }
 
 GuiMainWindow::~GuiMainWindow()

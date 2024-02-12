@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="XProcessWidget" name="widgetProcesses" native="true"/>
+     <widget class="XProcessWidgetAdvanced" name="widgetProcesses" native="true"/>
     </item>
    </layout>
   </widget>
@@ -34,9 +34,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>XProcessWidget</class>
+   <class>XProcessWidgetAdvanced</class>
    <extends>QWidget</extends>
-   <header>xprocesswidget.h</header>
+   <header>xprocesswidgetadvanced.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

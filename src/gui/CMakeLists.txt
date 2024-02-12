@@ -18,10 +18,10 @@ add_definitions(-DUSE_ARCHIVE)
 add_definitions(-DUSE_YARA)
 add_definitions(-DUSE_XPROCESS)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XProcessWidget/xprocesswidget.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XProcessWidget/xprocesswidgetadvanced.cmake)
 
 set(PROJECT_SOURCES
-        ${XPROCESSWIDGET_SOURCES}
+        ${XPROCESSWIDGETADVANCED_SOURCES}
         main_gui.cpp
         guimainwindow.cpp
         guimainwindow.h

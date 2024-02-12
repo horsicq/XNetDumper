@@ -2,6 +2,7 @@
 #define GUIMAINWINDOW_H
 
 #include <QMainWindow>
+#include "xprocess.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class GuiMainWindow; }
