@@ -40,6 +40,8 @@ GuiMainWindow::GuiMainWindow(QWidget *parent)
     g_xOptions.addID(XOptions::ID_VIEW_LANG, "System");
     g_xOptions.addID(XOptions::ID_VIEW_STAYONTOP, false);
 
+    DIEOptionsWidget::setDefaultValues(&g_xOptions);
+
     g_xOptions.addID(XOptions::ID_SCAN_ENGINE, "auto");
 #ifdef USE_YARA
     g_xOptions.addID(XOptions::ID_SCAN_YARARULESPATH, "$data/yara_rules");
@@ -59,7 +61,6 @@ GuiMainWindow::GuiMainWindow(QWidget *parent)
 
     ui->widgetProcesses->setGlobal(&g_xShortcuts, &g_xOptions);
 
-    connect(&g_xOptions, SIGNAL(openFile(QString)), this, SLOT(_process(QString)));
     connect(&g_xOptions, SIGNAL(errorMessage(QString)), this, SLOT(errorMessageSlot(QString)));
 
     createMenus();
@@ -132,3 +133,7 @@ void GuiMainWindow::adjustWindow()
     g_xOptions.adjustWindow(this);
 }
 
+void GuiMainWindow::errorMessageSlot(const QString &sText)
+{
+    QMessageBox::critical(this, tr("Error"), sText);
+}

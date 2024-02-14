@@ -70,7 +70,8 @@ DialogAbout::DialogAbout(QWidget *pParent) : QDialog(pParent), ui(new Ui::Dialog
                             "text-decoration: underline; color:#ff0000;\">http://www.capstone-engine.org</span></a></p>")
                             .arg(QString::number(CS_VERSION_MAJOR), QString::number(CS_VERSION_MINOR), QString::number(CS_VERSION_EXTRA));
 
-    _data.sLogoPath = ":/images/about.png";
+    _data.sLogoPath = ":/images/logo.png";
+
     _data.sUpdatesLink = "https://github.com/horsicq/XNetDumper/releases";
     _data.sThanksLink = "https://github.com/horsicq/XNetDumper/blob/master/doc/THANKS.md";
 

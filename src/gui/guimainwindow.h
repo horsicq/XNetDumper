@@ -51,6 +51,7 @@ private slots:
     void actionOptionsSlot();
     void actionAboutSlot();
     void adjustWindow();
+    void errorMessageSlot(const QString &sText);
 
 private:
     Ui::GuiMainWindow *ui;
