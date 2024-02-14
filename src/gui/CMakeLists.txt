@@ -19,13 +19,19 @@ add_definitions(-DUSE_YARA)
 add_definitions(-DUSE_XPROCESS)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XProcessWidget/xprocesswidgetadvanced.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../dep/XAboutWidget/xaboutwidget.cmake)
 
 set(PROJECT_SOURCES
         ${XPROCESSWIDGETADVANCED_SOURCES}
+        ${XABOUTWIDGET_SOURCES}
+        dialogabout.cpp
+        dialogabout.ui
+        dialogoptions.cpp
+        dialogoptions.ui
         main_gui.cpp
         guimainwindow.cpp
-        guimainwindow.h
         guimainwindow.ui
+        rsrc.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
