@@ -42,7 +42,7 @@ GuiMainWindow::GuiMainWindow(QWidget *parent)
 
     DIEOptionsWidget::setDefaultValues(&g_xOptions);
 
-    g_xOptions.addID(XOptions::ID_SCAN_ENGINE, "auto");
+    g_xOptions.addID(XOptions::ID_SCAN_ENGINE_EMPTY, "");
 #ifdef USE_YARA
     g_xOptions.addID(XOptions::ID_SCAN_YARARULESPATH, "$data/yara_rules");
 #endif
