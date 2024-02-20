@@ -46,5 +46,5 @@ endif()
 
 # TODO translation
 
-#set(CPACK_SOURCE_GENERATOR "ZIP")
-#include(CPack)
+set(CPACK_SOURCE_GENERATOR "ZIP")
+include(CPack)

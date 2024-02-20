@@ -40,9 +40,15 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
     )
 else()
-    add_executable(xnetdumper
-        ${PROJECT_SOURCES}
-    )
+    if(WIN32)
+        add_executable(xnetdumper WIN32
+            ${PROJECT_SOURCES}
+        )
+    else()
+        add_executable(xnetdumper
+            ${PROJECT_SOURCES}
+        )
+    endif()
 endif()
 
 target_link_libraries(xnetdumper PRIVATE bzip2)
