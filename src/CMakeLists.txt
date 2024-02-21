@@ -1,7 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
-project(XNetDumper)
 
-SET(X_PROJECT_VERSION 0.0.1 CACHE INTERNAL "X_PROJECT_VERSION")
+include(../dep/build_tools/cmake/deploy.cmake)
+file (STRINGS ${PROJECT_SOURCE_DIR}/release_version.txt X_PROJECT_VERSION)
+
+#set(CPACK_SOURCE_GENERATOR "ZIP")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+set(CPACK_OUTPUT_FILE_PREFIX packages)
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "XNetDumper")
+set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "XNetDumper")
+set(CPACK_PACKAGE_VENDOR "ntinfo")
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
+set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.md)
+include(CPack)
+
+project(XNetDumper VERSION ${X_PROJECT_VERSION} LANGUAGES CXX)
+
 SET(X_MACOSX_BUNDLE_GUI_IDENTIFIER com.example.xnetdumper CACHE INTERNAL "X_MACOSX_BUNDLE_GUI_IDENTIFIER")
 
 add_subdirectory(../dep/XCppfilt XCppfilt)
@@ -34,6 +47,10 @@ if(WIN32)
     install (FILES ${CMAKE_PREFIX_PATH}/plugins/imageformats/qico.dll DESTINATION imageformats)
     install (FILES ${CMAKE_PREFIX_PATH}/plugins/imageformats/qgif.dll DESTINATION imageformats)
     install (FILES ${CMAKE_PREFIX_PATH}/plugins/sqldrivers/qsqlite.dll DESTINATION sqldrivers)
+
+    if(MSVC)
+        deploy_msvc()
+    endif()
 else()
     install (DIRECTORY ../dep/Detect-It-Easy/db DESTINATION ${CMAKE_INSTALL_LIBDIR}/xnetdumper)
     install (DIRECTORY ../dep/Detect-It-Easy/db_custom DESTINATION ${CMAKE_INSTALL_LIBDIR}/xnetdumper)
@@ -46,5 +63,4 @@ endif()
 
 # TODO translation
 
-set(CPACK_SOURCE_GENERATOR "ZIP")
-include(CPack)
+
