@@ -20,9 +20,8 @@
  */
 #include <QApplication>
 #include <QStyleFactory>
-#include "guimainwindow.h"
 
-#include <QApplication>
+#include "guimainwindow.h"
 
 int main(int argc, char *argv[])
 {
