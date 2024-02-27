@@ -36,20 +36,31 @@ set(PROJECT_SOURCES
         ${XPROCESSWIDGETADVANCED_SOURCES}
         ${XABOUTWIDGET_SOURCES}
         dialogabout.cpp
+        dialogabout.h
         dialogabout.ui
         dialogoptions.cpp
+        dialogoptions.h
         dialogoptions.ui
         main_gui.cpp
         guimainwindow.cpp
+        guimainwindow.h
         guimainwindow.ui
         rsrc.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(xnetdumper
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-    )
+
+    if(WIN32)
+        qt_add_executable(xnetdumper
+            WIN32
+            ${PROJECT_SOURCES}
+        )
+    else()
+        qt_add_executable(xnetdumper
+            MANUAL_FINALIZATION
+            ${PROJECT_SOURCES}
+        )
+    endif()
 else()
     if(WIN32)
         add_executable(xnetdumper WIN32
