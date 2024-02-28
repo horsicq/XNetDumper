@@ -5,6 +5,6 @@ cd Release
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:\Qt\6.6.2\msvc2019_64" -G "NMake Makefiles" ..
 nmake
 cpack -G ZIP
-xcopy /y /E packages ../
+xcopy /y /E packages/ ../
 
 cd ..

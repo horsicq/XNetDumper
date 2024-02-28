@@ -48,29 +48,14 @@ set(PROJECT_SOURCES
         rsrc.qrc
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-
-    if(WIN32)
-        qt_add_executable(xnetdumper
-            WIN32
-            ${PROJECT_SOURCES}
-        )
-    else()
-        qt_add_executable(xnetdumper
-            MANUAL_FINALIZATION
-            ${PROJECT_SOURCES}
-        )
-    endif()
+if(WIN32)
+    add_executable(xnetdumper WIN32
+        ${PROJECT_SOURCES}
+    )
 else()
-    if(WIN32)
-        add_executable(xnetdumper WIN32
-            ${PROJECT_SOURCES}
-        )
-    else()
-        add_executable(xnetdumper
-            ${PROJECT_SOURCES}
-        )
-    endif()
+    add_executable(xnetdumper
+        ${PROJECT_SOURCES}
+    )
 endif()
 
 target_link_libraries(xnetdumper PRIVATE bzip2)
@@ -126,6 +111,6 @@ else()
     install (FILES ../../dep/signatures/crypto.db DESTINATION ${CMAKE_INSTALL_LIBDIR}/xnetdumper/signatures OPTIONAL)
 endif()
 
-if(${QT_VERSION_MAJOR} EQUAL 6)
-    qt_finalize_executable(xnetdumper)
-endif()
+# if(${QT_VERSION_MAJOR} EQUAL 6)
+#     qt_finalize_executable(xnetdumper)
+# endif()
