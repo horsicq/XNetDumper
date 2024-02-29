@@ -21,6 +21,7 @@
 #include "guimainwindow.h"
 #include "./ui_guimainwindow.h"
 
+
 GuiMainWindow::GuiMainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::GuiMainWindow)
@@ -91,21 +92,50 @@ void GuiMainWindow::createMenus()
     ui->menubar->addAction(pMenuTools->menuAction());
     ui->menubar->addAction(pMenuHelp->menuAction());
 
+
     QAction *pActionExit = new QAction(tr("Exit"), this);
     QAction *pActionOptions = new QAction(tr("Options"), this);
+     QAction *pActionLoadAssembly = new QAction(tr("Load Assembly"), this);
     QAction *pActionAbout = new QAction(tr("About"), this);
     // QAction *pActionShortcuts = new QAction(tr("Shortcuts"), this);
 
     pMenuFile->addAction(pActionExit);
     // pMenuTools->addAction(pActionShortcuts);
     pMenuTools->addAction(pActionOptions);
+    pMenuTools->addAction(pActionLoadAssembly);
     pMenuHelp->addAction(pActionAbout);
 
     connect(pActionExit, SIGNAL(triggered()), this, SLOT(actionExitSlot()));
     connect(pActionOptions, SIGNAL(triggered()), this, SLOT(actionOptionsSlot()));
     connect(pActionAbout, SIGNAL(triggered()), this, SLOT(actionAboutSlot()));
+    connect(pActionLoadAssembly, SIGNAL(triggered()), this, SLOT(actionLoadAssemblySlot()));
     // connect(pActionShortcuts, SIGNAL(triggered()), this, SLOT(actionShortcutsSlot()));
 }
+
+void GuiMainWindow::actionLoadAssemblySlot() {
+    qDebug() << "Load Assembly action triggered.";
+    QString filePath = QFileDialog::getOpenFileName(this, tr("Select DLL"), QDir::currentPath(), tr("Dynamic Link Libraries (*.dll)"));
+    if (filePath.isEmpty()) {
+        return;
+    }
+    QString absolutePath = QDir::toNativeSeparators(QFileInfo(filePath).absoluteFilePath());
+
+    QLibrary library(absolutePath);
+    if (library.load()) {
+        qDebug() << "DLL loaded successfully: " << absolutePath;
+        QString assemblyInfo = GetAssemblyInfo(&library);
+        qDebug() << "Assembly Info:\n" << assemblyInfo;
+
+        AssemblyLoad *assemblyLoadDialog = new AssemblyLoad(assemblyInfo, library, this);
+        assemblyLoadDialog->exec();
+        delete assemblyLoadDialog;
+    } else {
+        qWarning() << "Failed to load DLL: " << absolutePath;
+        qWarning() << "Error: " << library.errorString();
+        QMessageBox::critical(this, tr("DLL Loading Error"), tr("Failed to load DLL:\n") + absolutePath + "\n\n" + tr("Error: ") + library.errorString());
+    }
+}
+
 
 void GuiMainWindow::actionExitSlot()
 {
