@@ -23,8 +23,6 @@
 
 #include <QMainWindow>
 #include "../global.h"
-#include "assemblyload.h"
-#include "loadassembly.h"
 #include "dialogoptions.h"
 #include "dialogabout.h"
 #include "xoptions.h"
@@ -45,9 +43,8 @@ class GuiMainWindow : public QMainWindow
 public:
     GuiMainWindow(QWidget *parent = nullptr);
     ~GuiMainWindow();
-	
+
 private slots:
-	void actionLoadAssemblySlot();
     void createMenus();
     void actionExitSlot();
     // void actionShortcutsSlot();
