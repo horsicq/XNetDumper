@@ -27,6 +27,11 @@
 
 #include "../global.h"
 #include "dieoptionswidget.h"
+#include "searchsignaturesoptionswidget.h"
+#include "xdisasmviewoptionswidget.h"
+#include "xhexviewoptionswidget.h"
+#include "xinfodboptionswidget.h"
+#include "xonlinetoolsoptionswidget.h"
 
 namespace Ui {
 class DialogOptions;
@@ -43,6 +48,11 @@ public:
 private:
     Ui::DialogOptions *ui;
     DIEOptionsWidget *g_pDIEOptionsWidget;
+    SearchSignaturesOptionsWidget *g_pSearchSignaturesOptionsWidget;
+    XHexViewOptionsWidget *g_pXHexViewOptionsWidget;
+    XDisasmViewOptionsWidget *g_pXDisasmViewOptionsWidget;
+    XOnlineToolsOptionsWidget *g_pXOnlineToolsOptionsWidget;
+    XInfoDBOptionsWidget *g_pXInfoDBOptionsWidget;
 };
 
 #endif // DIALOGOPTIONS_H
