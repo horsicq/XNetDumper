@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 include(../../dep/build_tools/cmake/deploy.cmake)
+include(GNUInstallDirs)
 
 project(xnetdumper VERSION ${X_PROJECT_VERSION} LANGUAGES CXX)
 
@@ -10,18 +11,6 @@ set(CMAKE_AUTORCC ON)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent Network Script ScriptTools PrintSupport OpenGL Svg Sql)
-
-if(${QT_VERSION_MAJOR} EQUAL 5)
-    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network Script ScriptTools PrintSupport OpenGL Svg Sql)
-endif()
-
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent Network PrintSupport OpenGL Svg Sql Qml)
-endif()
-
-message(STATUS ${QT_VERSION_MAJOR})
 
 add_definitions(-DUSE_DEX)
 add_definitions(-DUSE_PDF)
@@ -86,8 +75,6 @@ if(WIN32)
     target_link_libraries(xnetdumper PRIVATE Wintrust)
     target_link_libraries(xnetdumper PRIVATE Crypt32)
 endif()
-
-include(GNUInstallDirs)
 
 if(WIN32)
     install (TARGETS xnetdumper DESTINATION "./")
