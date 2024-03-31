@@ -37,8 +37,7 @@ namespace Ui {
 class DialogOptions;
 }
 
-class DialogOptions : public QDialog
-{
+class DialogOptions : public QDialog {
     Q_OBJECT
 
 public:
@@ -55,4 +54,4 @@ private:
     XInfoDBOptionsWidget *g_pXInfoDBOptionsWidget;
 };
 
-#endif // DIALOGOPTIONS_H
+#endif  // DIALOGOPTIONS_H

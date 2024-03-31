@@ -33,11 +33,12 @@
 #endif
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class GuiMainWindow; }
+namespace Ui {
+class GuiMainWindow;
+}
 QT_END_NAMESPACE
 
-class GuiMainWindow : public QMainWindow
-{
+class GuiMainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -58,4 +59,4 @@ private:
     XOptions g_xOptions;
     XShortcuts g_xShortcuts;
 };
-#endif // GUIMAINWINDOW_H
+#endif  // GUIMAINWINDOW_H
