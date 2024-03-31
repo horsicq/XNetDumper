@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 include(../dep/build_tools/cmake/deploy.cmake)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent Network Script ScriptTools PrintSupport OpenGL Svg Sql)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 
 if(${QT_VERSION_MAJOR} EQUAL 5)
     find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network Script ScriptTools PrintSupport OpenGL Svg Sql)
@@ -12,16 +12,18 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 endif()
 
 file (STRINGS ${PROJECT_SOURCE_DIR}/release_version.txt X_PROJECT_VERSION)
-
 project(XNetDumper VERSION ${X_PROJECT_VERSION} LANGUAGES CXX)
 
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "XNetDumper")
-set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "XNetDumper")
-set(CPACK_PACKAGE_VENDOR "ntinfo")
-set(CPACK_PACKAGE_NAME "XNetDumper")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "horsicq@gmail.com")
+set(X_COMPANYNAME "ntinfo")
+set(X_PROJECTNAME "XNetDumper")
+set(X_MAINTAINER "horsicq@gmail.com")
+set(X_DESCRIPTION "XNetDumper is a dumper")
+set(X_HOMEPAGE "http://ntinfo.biz")
+set(X_ORIGINAL_FILENAME "xnetdumper")
 
-set(X_MACOSX_BUNDLE_GUI_IDENTIFIER com.example.xnetdumper CACHE INTERNAL "X_MACOSX_BUNDLE_GUI_IDENTIFIER")
+if(${QT_VERSION} VERSION_LESS 6.1.0)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.xnetdumper)
+endif()
 
 deploy_init()
 
