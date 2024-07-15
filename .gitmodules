@@ -157,3 +157,6 @@
 [submodule "dep/Detect-It-Easy"]
 	path = dep/Detect-It-Easy
 	url = https://github.com/horsicq/Detect-It-Easy
+[submodule "dep/XScanEngine"]
+	path = dep/XScanEngine
+	url = https://github.com/horsicq/XScanEngine
