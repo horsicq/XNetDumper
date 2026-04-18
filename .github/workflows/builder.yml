@@ -13,7 +13,7 @@ jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
         path: ${{ env.SRC_PATH }}
@@ -46,7 +46,7 @@ jobs:
   build-windows-32:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
          submodules: 'recursive'
          path: ${{ env.SRC_PATH }}
@@ -90,7 +90,7 @@ jobs:
   build-windows-64:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
          submodules: 'recursive'
          path: ${{ env.SRC_PATH }}
