@@ -1,4 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
+
+# project() MUST precede find_package(Qt...) -- before it no language is enabled,
+# Qt5's imported targets are created STATIC, and CMake then links them through
+# IMPORTED_LOCATION (bin\Qt5*.dll) instead of IMPORTED_IMPLIB (lib\Qt5*.lib),
+# producing LNK1107 on the .dll. ${PROJECT_SOURCE_DIR} is unusable for the version
+# file (empty pre-project(), src/ afterwards), so address it relative to this list
+# file, which is the repo root standalone and from the root build alike.
+file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/../release_version.txt X_PROJECT_VERSION)
+
+project(XNetDumper VERSION ${X_PROJECT_VERSION} LANGUAGES CXX)
+
 include(../dep/build_tools/cmake/deploy.cmake)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
@@ -11,8 +22,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent Network PrintSupport OpenGL Svg Sql Qml)
 endif()
 
-file (STRINGS ${PROJECT_SOURCE_DIR}/release_version.txt X_PROJECT_VERSION)
-project(XNetDumper VERSION ${X_PROJECT_VERSION} LANGUAGES CXX)
 
 set(X_COMPANYNAME "ntinfo")
 set(X_PROJECTNAME "XNetDumper")
