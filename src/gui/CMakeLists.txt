@@ -21,7 +21,6 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_definitions(-DUSE_ARCHIVE)
 add_definitions(-DUSE_YARA)
 add_definitions(-DUSE_XPROCESS)
 
